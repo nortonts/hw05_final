@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %} Просмотр записи {{user.username}}{% endblock %}
+{% block header %} Просмотр записи {{user.username}}{% endblock %}
+{% block content %}
+
+<main role="main" class="container">
+<div class="row">
+        {% include 'includes/userprofile.html' %}
+        <div class="col-md-9">
+                {% include 'includes/one_post.html' %}
+                 </div>
+</div>
+{% endblock %}
