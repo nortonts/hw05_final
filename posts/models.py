@@ -5,11 +5,12 @@ User = get_user_model()
 
 class Post(models.Model):
     text = models.TextField()
-    pub_date = models.DateTimeField("date published", auto_now_add=True)
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, 
-                               related_name="posts")
-    group = models.ForeignKey("Group", models.SET_NULL, blank=True, 
+                               related_name='posts')
+    group = models.ForeignKey('Group', models.SET_NULL, blank=True, 
                                null=True, related_name="posts")
+    image = models.ImageField(upload_to='posts/', blank=True, null=True)
 
     class Meta:
         ordering = ["-pub_date"] 
@@ -25,3 +26,17 @@ class Group(models.Model):
 
     def __str__(self):   
         return f"{self.title}"
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, 
+                             related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, 
+                               related_name='comments')
+    text = models.TextField()
+    created = models.DateTimeField('Дата комментария', auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created"] 
+
+    def __str__(self):   
+        return f"{self.created, self.author, self.post.id, self.text}"

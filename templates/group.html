@@ -4,38 +4,11 @@
 {% block header %}{{group.title}}{% endblock %}
 {% block description %}<p>{{ group.description }}</p>{% endblock %}
 {% block content %}
-<div class="col-md-9">
-      {% for post in page %}
-      <div class="card mb-3 mt-1 shadow-sm">
-                            <div class="card-body">
-                                    <p class="card-text">
-                                            <!-- Ссылка на страницу автора в атрибуте href; username автора в тексте ссылки -->
-                                            <a href="/{{post.author}}/"><strong class="d-block text-gray-dark">@{{post.author}}</strong></a>
-                                            <!-- Текст поста -->
-                                        {{ post.text|linebreaksbr }}
-                                    </p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                            <div class="btn-group ">
-                                                    <!-- Ссылка на страницу записи в атрибуте href-->
-                                                    <a class="btn btn-sm text-muted" href="{% url 'post_view' post.author.username post.id %}" role="button">Добавить комментарий</a>
-                                                    <!-- Ссылка на редактирование, показывается только автору записи -->
-                                                    {% if user == post.author %}
-                                                        <a class="btn btn-sm text-muted" href="{% url 'post_edit' post.author.username post.id %}" role="button">Редактировать</a>
-                                                    {% endif %}
-                                            </div>
-                                            <!-- Дата публикации  -->
-                                            <small class="text-muted">{{ post.pub_date }}</small>
-                                    </div>
-                            </div>
-                    </div>
-      <!--<h3>
-          Автор: {{post.author.get_full_name}}, 
-          дата публикации: {{post.pub_date|date:"d M Y"}}
-      </h3>
-      <p>{{post.text|linebreaksbr}}</p>
-      <hr>-->
-      {% endfor %}
+{% for post in page %}  
+     {% include 'includes/post_item.html' %}
+{% endfor %}
+
 {% if page.has_other_pages %}
-    {% include "paginator.html" with items=page paginator=paginator %}
-{% endif %}     
+    {% include "includes/paginator.html" with items=page paginator=paginator %}
+{% endif %}   
 {% endblock %}
