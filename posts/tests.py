@@ -1,5 +1,5 @@
 from django.test import TestCase, Client
-from .models import Post, Group, User
+from .models import Post, Group, User, Comment, Follow
 from django.urls import reverse
 
 
@@ -100,3 +100,78 @@ class ImageTest(TestCase):
         self.assertFormError(response, "form", "image", 
             "Загрузите правильное изображение. Файл, ко"\
             "торый вы загрузили, поврежден или не является изображением.")
+
+
+class CacheTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="test_user", 
+                                             email="tstusr@test.ru", 
+                                             password="12345")
+
+    def test_cache(self):
+        self.client.get(reverse("index"))                                        
+        Post.objects.create(text="cache_test", author=self.user) 
+        response = self.client.get(reverse("index"))
+        self.assertNotContains(response, "cache_test")
+
+
+class FollowAndCommentTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.fol_user_client = Client()
+        self.user = User.objects.create_user(username="test_user", 
+                                             email="tstusr@test.ru", 
+                                             password="12345")
+        self.fol_user = User.objects.create_user(username="folowing_user", 
+                                             email="follow@test.ru", 
+                                             password="12345") 
+        self.not_fol_user = User.objects.create_user(username="not_folowing_user", 
+                                             email="follow@test.ru", 
+                                             password="12345")  
+        Post.objects.create(text="Follow_index_test", author=self.fol_user)  
+        Post.objects.create(text="Not_Follow_index_test", 
+                            author=self.not_fol_user)                                                                                                                  
+        self.client.force_login(self.user) 
+        self.client.post(reverse("profile_follow", kwargs={
+                                    "username": self.fol_user.username}), 
+                                    follow=True)         
+
+    def follow_test(self):
+        response = Follow.objects.filter(user=self.user, 
+                                         author=self.fol_user).exists() 
+        self.assertEqual(response, True)
+        self.client.post(reverse("profile_unfollow", kwargs={
+                                    "username": self.fol_user.username}), 
+                                    follow=True) 
+        response = Follow.objects.filter(user=self.user, 
+                                         author=self.fol_user).exists() 
+        self.assertEqual(response, False)  
+
+    def follow_index_test(self):
+        response = self.client.get(reverse("index"))
+        self.assertContains(response, "Follow_index_test")         
+        self.assertContains(response, "Not_Follow_index_test")
+        response = self.client.get(reverse("follow_index"))
+        self.assertContains(response, "Follow_index_test")         
+        self.assertNotContains(response, "Not_Follow_index_test")
+
+    def comment_test(self):
+        response = self.client.post(reverse("add_comment", kwargs={
+                "username": "folowing_user", "post_id": "1"}),
+                data={'text': "test_comment"}, follow=True)
+        self.assertRedirects(response, "/folowing_user/1/", 
+                             status_code=302, target_status_code=200) 
+        response = self.client.get(reverse("post_view", kwargs={
+                                           "username": "folowing_user", 
+                                           "post_id": "1"}))  
+        self.assertContains(response, "test_comment")                                                
+        response = self.fol_user_client.post(reverse("add_comment", kwargs={
+                'username': "folowing_user", "post_id": "1"}),
+                data={"text": "test_comment"}, follow=True)
+        self.assertRedirects(response, 
+                             "/auth/login/?next=/folowing_user/1/comment/", 
+                             status_code=302, target_status_code=200)
+                                                            
+
+        
