@@ -1,11 +1,13 @@
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from .models import Post, Group, User, Comment
+from .models import Post, Group, User, Comment, Follow
 from .forms import PostForm, CommentForm
 from django.core.paginator import Paginator
+from django.views.decorators.cache import cache_page
 
 
+#@cache_page(60 * 15)
 def index(request):
     add_com = True
     post_list = Post.objects.order_by('-pub_date').all()
@@ -47,30 +49,37 @@ def new_post(request):
 def profile(request, username):
     user_name = get_object_or_404(User, username=username)
     user_posts = user_name.posts.all()
-    posts_quan = user_posts.count()
+    if request.user.is_authenticated:
+        following = Follow.objects.filter(user=request.user ,author=user_name).exists()
+    else:
+        following = False   
     paginator = Paginator(user_posts, 10) 
     page_number = request.GET.get('page')  
     page = paginator.get_page(page_number) 
     return render(request, 'profile.html', {'page': page, 
                                             'paginator': paginator,
                                             'user_name': user_name, 
-                                            'posts_quan': posts_quan,
-                                            'add_com': True})
+                                            'add_com': True,
+                                            'following': following
+                                            })
  
  
 def post_view(request, username, post_id):
         post = get_object_or_404(Post, pk=post_id, author__username=username)
         user_name =  post.author
-        posts_quan = post.author.posts.all().count()
         post_com = post.comments.all() 
         com_form = CommentForm()
         com_edit = False
+        if request.user.is_authenticated:
+            following = Follow.objects.filter(user=request.user ,author=user_name).exists()
+        else:
+            following = False
         return render(request, 'post_view.html', {'post': post,
-                                                  'posts_quan': posts_quan,
                                                   'user_name': user_name,
                                                   'post_com': post_com,
                                                   'com_form': com_form,
-                                                  'add_com': False,})
+                                                  'add_com': False,
+                                                  'following':following})
 
 
 @login_required
@@ -98,7 +107,39 @@ def add_comment(request, username, post_id):
             com_form.save()
             return redirect('post_view', username=username, post_id=post_id)
    
-                             
+
+@login_required
+def follow_index(request):
+    index_users = Follow.objects.filter(user=request.user)
+    fol_users = []
+    for user in index_users:
+        fol_users.append(user.author)
+    post_list = Post.objects.filter(author__in=fol_users)
+    paginator = Paginator(post_list, 10) 
+    page_number = request.GET.get('page')  
+    page = paginator.get_page(page_number) 
+    return render(
+                  request,
+                  'follow.html',
+                  {'page': page, 'paginator': paginator, 'add_com': True}
+                 )
+   
+
+@login_required
+def profile_follow(request, username):
+    following = True
+    follow_profile = get_object_or_404(User, username=username)
+    if request.user != follow_profile:
+        follow = Follow.objects.get_or_create(user=request.user, author=follow_profile)
+    return redirect('profile', username=username)
+
+@login_required
+def profile_unfollow(request, username):
+    following = False
+    follow_profile = get_object_or_404(User, username=username)
+    unfollow = get_object_or_404(Follow, user=request.user,author=follow_profile).delete()
+    return redirect('profile', username=username)
+
 def page_not_found(request, exception):
     return render(
         request, 
