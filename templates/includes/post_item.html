@@ -29,18 +29,18 @@
                 {% if add_com == True %} 
                 <a class="btn btn-sm text-muted" href="{% url 'post_view' post.author.username post.id %}" role="button">
                     {% if post.comments.exists %}
-                    {{ post.comments.count }} комментариев
+                        {{ post.comments.count }} комментариев
                     {% else%}
-                    Добавить комментарий
+                        Добавить комментарий
                     {% endif %}
                 </a>
                  {% endif %}    
                 <!-- Ссылка на редактирование поста для автора -->
                  {% if user == post.author %}
-                 <a class="btn btn-sm text-muted" href="{% url 'post_edit' post.author.username post.id %}"
-                        role="button">
-                        Редактировать
-                </a>
+                    <a class="btn btn-sm text-muted" href="{% url 'post_edit' post.author.username post.id %}"
+                    role="button">
+                    Редактировать
+                    </a>
                 {% endif %}
             </div>
             

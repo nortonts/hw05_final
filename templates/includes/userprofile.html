@@ -23,17 +23,17 @@
                <p>
                </p>
                {% if user.username != user_name.username %}                                            
-               {% if following == True %}
-               <a class="btn btn-lg btn-danger" 
-                  href="{% url 'profile_unfollow' user_name.username %}" role="button"> 
-               Отписаться 
-               </a> 
-               {% else%}
-               <a class="btn btn-lg btn-primary" 
-                  href="{% url 'profile_follow' user_name.username %}" role="button">
-               Подписаться 
-               </a>
-               {% endif %}
+                  {% if following == True %}
+                     <a class="btn btn-lg btn-danger" 
+                     href="{% url 'profile_unfollow' user_name.username %}" role="button"> 
+                     Отписаться 
+                     </a> 
+                  {% else%}
+                     <a class="btn btn-lg btn-primary" 
+                     href="{% url 'profile_follow' user_name.username %}" role="button">
+                     Подписаться 
+                     </a>
+                  {% endif %}
                {% endif %}
             </div>
          </li>

@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-User = get_user_model()
 
+
+User = get_user_model()
 
 class Post(models.Model):
     text = models.TextField()
@@ -13,7 +14,7 @@ class Post(models.Model):
     image = models.ImageField(upload_to='posts/', blank=True, null=True)
 
     class Meta:
-        ordering = ["-pub_date"] 
+        ordering = ("-pub_date",)
 
     def __str__(self):   
         return f"{self.pub_date} {self.author} {self.text}"   
@@ -36,7 +37,7 @@ class Comment(models.Model):
     created = models.DateTimeField('Дата комментария', auto_now_add=True)
 
     class Meta:
-        ordering = ["-created"] 
+        ordering = ("-created",)
 
     def __str__(self):   
         return f"{self.created, self.author, self.post.id, self.text}"
@@ -49,7 +50,7 @@ class Follow(models.Model):
                              related_name='following')
 
     class Meta:
-        unique_together = ['user', 'author'] 
+        unique_together = ('user', 'author')
 
     def __str__(self):   
         return f"{self.user, self.author}"                             

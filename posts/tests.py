@@ -1,6 +1,8 @@
 from django.test import TestCase, Client
 from .models import Post, Group, User, Comment, Follow
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+import time
 
 
 class ProfileTest(TestCase):
@@ -28,7 +30,7 @@ class ProfileTest(TestCase):
 
     def test_profile(self):
         response = self.client.get(reverse("profile", kwargs={
-                                           "username": 'test_user'}))
+                                           "username": "test_user"}))
         self.assertEqual(response.status_code, 200)
 
     def new_post_test(self):
@@ -40,7 +42,8 @@ class ProfileTest(TestCase):
 
     def post_test(self):
         for url in self.urls:
-            self.check_post_in_page(url, "New_post_test")
+            with self.subTest(url=url):
+                self.check_post_in_page(url, "New_post_test")
         post = Post.objects.get(text="New_post_test")
         self.assertEqual(post.author.username, "test_user")
         quan = self.user.posts.all().count()
@@ -50,12 +53,15 @@ class ProfileTest(TestCase):
     def post_edit_test(self): 
         for url in self.urls:
             response = self.client.get(url)
-            self.assertNotContains (response, "post_edited")       
+            with self.subTest(response=response):
+                self.assertNotContains (response, "post_edited")       
         self.client.post(reverse("post_edit", kwargs={
-                'username': self.user.username, 'post_id': "1"}),
-                data={'group': "1", 'text': "post_edited"}, follow=True)
+                "username": "test_user", 'post_id': "1"}),
+                data={"group": "1", "text": "11"}, follow=True)
+        time.sleep(20)       
         for url in self.urls:
-            self.check_post_in_page(url, "post_edited")  
+            with self.subTest(url=url):
+                self.check_post_in_page(url, "11") 
 
     
 class CrashTest(TestCase):
@@ -74,11 +80,18 @@ class ImageTest(TestCase):
                                              password="12345")
         self.client.force_login(self.user)                                                                       
         self.group = Group.objects.create(title="test_group", slug="test_slug")
-        self.img = open("media/posts/test_image.jpeg", "rb")
+        small_gif = (
+        b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04'
+        b'\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02'
+        b'\x02\x4c\x01\x00\x3b'
+        )
+        self.img = SimpleUploadedFile('small.gif', small_gif, 
+                                      content_type='image/gif')
         self.img_post = self.client.post(reverse("new_post"),
-        data={"group": "1", 'text': "post_with_image_test", "image": self.img}, follow=True) 
+        data={"group": "1", 'text': "post_with_image_test", "image": self.img},
+        follow=True) 
         self.urls = [
-        reverse("index"), 
+        reverse("index"),
         reverse("profile", kwargs={ "username": "test_user"}),
         reverse("post_view", kwargs={ "username": "test_user", "post_id": "1"}),
         reverse("group", kwargs={ "slug": "test_slug"})
@@ -87,11 +100,14 @@ class ImageTest(TestCase):
     def image_test(self):
         for url in self.urls:
             response = self.client.get(url)
-            self.assertContains(response, "<img class=")
-            self.assertContains(response, "post_with_image_test") 
+            with self.subTest(response=response):
+                self.assertContains(response, "<img class=")
+                self.assertContains(response, "post_with_image_test") 
 
     def not_image_test(self):
-        self.img = open("media/posts/not_image_file.txt", "rb")
+        small_gif = (b"no_photo")
+        self.img = SimpleUploadedFile('small.gif', small_gif, 
+                                      content_type='image/gif')
         response = self.client.post(reverse("new_post"),
         data={
               "group": "1", 'text': "post_with_not_image_test", 
@@ -138,15 +154,17 @@ class FollowAndCommentTest(TestCase):
                                     follow=True)         
 
     def follow_test(self):
-        response = Follow.objects.filter(user=self.user, 
+        result = Follow.objects.filter(user=self.user, 
                                          author=self.fol_user).exists() 
-        self.assertEqual(response, True)
+        self.assertTrue(result)
+
+    def unfollow_test(self):    
         self.client.post(reverse("profile_unfollow", kwargs={
                                     "username": self.fol_user.username}), 
                                     follow=True) 
-        response = Follow.objects.filter(user=self.user, 
+        result = Follow.objects.filter(user=self.user, 
                                          author=self.fol_user).exists() 
-        self.assertEqual(response, False)  
+        self.assertFalse(result)  
 
     def follow_index_test(self):
         response = self.client.get(reverse("index"))
@@ -174,4 +192,3 @@ class FollowAndCommentTest(TestCase):
                              status_code=302, target_status_code=200)
                                                             
 
-        
