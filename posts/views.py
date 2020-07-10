@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.cache import cache_page
 
 
-@cache_page(1 * 20)
+#@cache_page(1 * 20)
 def index(request):
     add_com = True
     post_list = Post.objects.all()
@@ -83,7 +83,8 @@ def post_view(request, username, post_id):
                                                   'post_com': post_com,
                                                   'com_form': com_form,
                                                   'add_com': False,
-                                                  'following':following})
+                                                  'following':following,})
+                                                  #'comment':comment
 
 
 @login_required
@@ -108,9 +109,46 @@ def add_comment(request, username, post_id):
         comment = com_form.save(commit=False)
         comment.author = request.user
         comment.post = post
-        com_form.save()
+        comment.save()
     return redirect('post_view', username=username, post_id=post_id)
+
+@login_required
+def edit_comment(request, username, post_id, comment_id):
+    post = get_object_or_404(Post, pk=post_id, author__username=username)
+    comment = get_object_or_404(Comment, id=comment_id)
+    user_name =  post.author
+    com_edit = True
+    post_com = post.comments.all() 
+    if request.user.is_authenticated:
+        following = Follow.objects.filter(user=request.user,
+                                              author=user_name).exists()
+    else:
+        following = False
+    com_form = CommentForm(request.POST or None, instance=comment)
+    if com_form.is_valid():
+        com_form.save()
+        com_edit = False
+        return redirect('post_view', username=username, post_id=post_id)
+    return render(request, 'post_view.html', {'post': post,
+                                              'user_name': user_name,
+                                              'post_com': post_com,
+                                              'com_form': com_form,
+                                              'add_com': False,
+                                              'following':following,
+                                              'comment': comment,
+                                              'com_edit': com_edit}) 
    
+
+@login_required
+def delete_comment(request, username, post_id, comment_id):
+    post = get_object_or_404(Post, pk=post_id, author__username=username)
+    comment = get_object_or_404(Comment, id=comment_id)
+    if Comment.objects.filter(author=request.user, post=post_id,
+                             id=comment_id).exists():
+        com_delete = get_object_or_404(Comment, author=request.user,
+                                                post=post_id,
+                                                id=comment_id).delete()
+    return redirect('post_view', username=username, post_id=post_id)   
 
 @login_required
 def follow_index(request):
