@@ -100,6 +100,15 @@ def post_edit(request, username, post_id):
     return render(request, 'new.html', {'form': form, 'post': post, 
                                         'is_edit': True})
 
+@login_required
+def post_delete(request, username, post_id):
+    post = get_object_or_404(Post, pk=post_id, author__username=username)
+    if request.user != post.author:
+        return redirect('post_view', username=username, post_id=post_id)
+    if Post.objects.filter(pk=post_id, author__username=username).exists():
+        post.delete()
+        return redirect('profile', username=username)    
+
 
 @login_required
 def add_comment(request, username, post_id):
@@ -125,6 +134,8 @@ def edit_comment(request, username, post_id, comment_id):
     else:
         following = False
     com_form = CommentForm(request.POST or None, instance=comment)
+    if request.user != comment.author:
+        return redirect('post_view', username=username, post_id=post_id)
     if com_form.is_valid():
         com_form.save()
         com_edit = False
@@ -143,6 +154,8 @@ def edit_comment(request, username, post_id, comment_id):
 def delete_comment(request, username, post_id, comment_id):
     post = get_object_or_404(Post, pk=post_id, author__username=username)
     comment = get_object_or_404(Comment, id=comment_id)
+    if request.user != comment.author:
+        return redirect('post_view', username=username, post_id=post_id)
     if Comment.objects.filter(author=request.user, post=post_id,
                              id=comment_id).exists():
         com_delete = get_object_or_404(Comment, author=request.user,
